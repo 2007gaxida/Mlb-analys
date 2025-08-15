@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MLB Analytics Pro</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* Tipografía limpia y profesional */
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+    /* Efectos sutiles en fichas y botones */
+    .card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(17,24,39,0.06);
+      transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(17,24,39,0.10);
+      border-color: #d1d5db;
+    }
+    .soft-btn {
+      border-radius: 10px;
+      transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+    }
+    .soft-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(37,99,235,0.25);
+    }
+    .pill {
+      border-radius: 9999px;
+      padding: .35rem .65rem;
+      font-weight: 600;
+      font-size: .75rem;
+    }
+    /* Banner azul (header) */
+    .blue-hero {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
+    }
+    /* Tabs */
+    .tab-btn {
+      background: white;
+      color: #6b7280;
+      border: 1px solid #e5e7eb;
+      transition: all .2s;
+      border-radius: 10px;
+    }
+    .tab-btn:hover { background: #f3f4f6; color: #374151; }
+    .tab-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .tab-content.hidden { display: none; }
+
+    /* Aviso (toast) */
+    .toast {
+      animation: slideIn .25s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-8px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Modal */
+    .modal-bg { background: rgba(0,0,0,.55); }
+    .modal-card { border-radius: 16px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Banner azul (header) -->
+  <header class="blue-hero text-white">
+    <div class="container mx-auto px-4 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-white/15 border border-white/20 rounded-xl flex items-center justify-center">
+            <span class="text-2xl">⚾</span>
+          </div>
+          <div>
+            <h1 class="text-2xl font-extrabold tracking-tight">MLB Analytics Pro</h1>
+            <p class="text-blue-100 text-sm font-medium">Análisis profesional de baseball con IA</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-blue-100">Temporada</div>
+          <div class="text-lg font-semibold">MLB 2025</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navegación -->
+  <nav class="bg-white border-b sticky top-0 z-40">
+    <div class="container mx-auto px-4">
+      <div class="flex items-center gap-2 py-3 overflow-x-auto">
+        <button id="tab-inicio" class="tab-btn active px-4 py-2 text-sm font-medium" onclick="showTab('inicio')">🏠 Dashboard</button>
+        <button id="tab-pronostico" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('pronostico')">🔮 Pronósticos</button>
+        <button id="tab-calendario" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('calendario')">📅 Calendario</button>
+        <button id="tab-clasificacion" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('clasificacion')">🏆 Clasificación</button>
+        <button id="tab-bateo" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('bateo')">🏏 Bateo</button>
+        <button id="tab-pitcheo" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('pitcheo')">⚡ Pitcheo</button>
+        <button id="tab-cargar" class="tab-btn px-4 py-2 text-sm font-medium" onclick="showTab('cargar')">📊 Cargar Datos</button>
+        <div class="flex-1"></div>
+        <button class="soft-btn bg-red-500 hover:bg-red-600 text-white px-4 py-2 text-sm font-semibold" onclick="clearAllData()">🗑️ Limpiar</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Contenido -->
+  <main class="container mx-auto px-4 py-8">
+    <!-- Inicio -->
+    <section id="content-inicio" class="tab-content">
+      <div class="card p-8 mb-8">
+        <div class="text-center max-w-3xl mx-auto">
+          <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Plataforma de análisis MLB</h2>
+          <p class="text-gray-600 mb-6">Predicciones fiables combinando fuerza de equipos, duelo de abridores, ofensiva, bullpen y contexto.</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm font-semibold text-gray-700">Modelos IA</div>
+              <div class="text-xs text-gray-500">Ensamble ponderado</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm font-semibold text-gray-700">Sabermetrics</div>
+              <div class="text-xs text-gray-500">PCT, DIFF, L10</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm font-semibold text-gray-700">Duelo abridores</div>
+              <div class="text-xs text-gray-500">W-L, ERA, WHIP</div>
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="text-sm font-semibold text-gray-700">Contexto</div>
+              <div class="text-xs text-gray-500">Localía y parque</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Estado del sistema</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div class="text-center">
+            <div class="w-16 h-16 bg-blue-50 text-blue-700 rounded-lg mx-auto mb-2 flex items-center justify-center text-xl font-extrabold" id="stats-games">0</div>
+            <div class="text-sm font-semibold text-gray-700">Juegos</div>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 bg-emerald-50 text-emerald-700 rounded-lg mx-auto mb-2 flex items-center justify-center text-xl font-extrabold" id="stats-batters">0</div>
+            <div class="text-sm font-semibold text-gray-700">Bateadores</div>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 bg-rose-50 text-rose-700 rounded-lg mx-auto mb-2 flex items-center justify-center text-xl font-extrabold" id="stats-pitchers">0</div>
+            <div class="text-sm font-semibold text-gray-700">Pitchers</div>
+          </div>
+          <div class="text-center">
+            <div class="w-16 h-16 bg-amber-50 text-amber-700 rounded-lg mx-auto mb-2 flex items-center justify-center text-xl font-extrabold" id="stats-teams">0</div>
+            <div class="text-sm font-semibold text-gray-700">Equipos</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pronósticos -->
+    <section id="content-pronostico" class="tab-content hidden">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+        <div>
+          <h2 class="text-2xl font-extrabold text-gray-900">🔮 Pronósticos IA</h2>
+          <p class="text-gray-600 text-sm">Tarjetas en filas de 3, agrupadas por fecha y con análisis detallado.</p>
+        </div>
+        <!-- Ajuste de pesos -->
+        <details class="card p-4 md:w-[520px]">
+          <summary class="cursor-pointer font-semibold text-gray-800">Ajustar pesos del modelo</summary>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label class="text-sm font-medium text-gray-700">Fuerza equipos (25%)</label>
+              <input id="w-team" type="range" min="0" max="50" value="25" class="w-full">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Abridores (30%)</label>
+              <input id="w-pitch" type="range" min="0" max="50" value="30" class="w-full">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Ofensiva (20%)</label>
+              <input id="w-off" type="range" min="0" max="40" value="20" class="w-full">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Bullpen (10%)</label>
+              <input id="w-bull" type="range" min="0" max="30" value="10" class="w-full">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Localía (5%)</label>
+              <input id="w-home" type="range" min="0" max="15" value="5" class="w-full">
+            </div>
+            <div>
+              <label class="text-sm font-medium text-gray-700">Parque/Clima (5%)</label>
+              <input id="w-ctx" type="range" min="0" max="15" value="5" class="w-full">
+            </div>
+          </div>
+          <div class="mt-4 flex items-center gap-3">
+            <button class="soft-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold" onclick="applyWeights()">Aplicar</button>
+            <button class="soft-btn bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 text-sm font-semibold" onclick="resetWeights()">Resetear</button>
+            <div class="text-xs text-gray-500" id="weights-total">Suma: 95% (se normaliza a 100%)</div>
+          </div>
+        </details>
+      </div>
+
+      <div id="pronosticos-tabs" class="hidden mb-4 overflow-x-auto">
+        <div id="pronosticos-tabs-inner" class="flex gap-2"></div>
+      </div>
+      <div id="pronosticos-container" class="space-y-10">
+        <!-- Se llena al cargar datos -->
+        <div class="text-center py-16">
+          <div class="text-6xl mb-4">🤖</div>
+          <p class="text-gray-600">Carga los datos para ver pronósticos</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Calendario -->
+    <section id="content-calendario" class="tab-content hidden">
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-4">📅 Calendario</h2>
+      <div id="calendario-container" class="space-y-6">
+        <div class="text-center py-12 text-gray-600">Carga datos para ver el calendario.</div>
+      </div>
+    </section>
+
+    <!-- Clasificación -->
+    <section id="content-clasificacion" class="tab-content hidden">
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-4">🏆 Clasificaciones</h2>
+      <div id="clasificacion-container" class="space-y-8">
+        <div class="text-center py-12 text-gray-600">Carga datos para ver las tablas.</div>
+      </div>
+    </section>
+
+    <!-- Bateo -->
+    <section id="content-bateo" class="tab-content hidden">
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-4">🏏 Bateo</h2>
+      <div id="bateo-container" class="space-y-6">
+        <div class="text-center py-12 text-gray-600">Carga datos para ver estadísticas.</div>
+      </div>
+    </section>
+
+    <!-- Pitcheo -->
+    <section id="content-pitcheo" class="tab-content hidden">
+      <h2 class="text-2xl font-extrabold text-gray-900 mb-4">⚡ Pitcheo</h2>
+      <div id="pitcheo-container" class="space-y-6">
+        <div class="text-center py-12 text-gray-600">Carga datos para ver estadísticas.</div>
+      </div>
+    </section>
+
+    <!-- Cargar Datos -->
+    <section id="content-cargar" class="tab-content hidden">
+      <div class="card p-8">
+        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">📊 Centro de Carga</h2>
+        <p class="text-gray-600 mb-6">Sube tu archivo Excel con hojas: Calendario, Bateo, Pitcheo, Clasificacion.</p>
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-8 text-center">
+          <div class="text-6xl mb-4">📁</div>
+          <p class="text-gray-700 mb-4">Selecciona tu archivo Excel</p>
+          <input type="file" id="excel-file" accept=".xlsx,.xls" class="hidden" onchange="handleFileUpload(event)">
+          <button class="soft-btn bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 font-semibold" onclick="document.getElementById('excel-file').click()">Seleccionar archivo</button>
+          <div id="upload-status" class="mt-6 hidden">
+            <div class="flex items-center justify-center gap-3 text-blue-700">
+              <div class="h-5 w-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <span>Procesando datos...</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <h3 class="font-bold text-gray-900 mb-3">Estructura requerida</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <strong>Calendario</strong>: FECHA | LOCAL | VISITANTE | HORA | PITCHER_LOCAL | PITCHER_VISITANTE | ESTADIO | CLIMA
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-emerald-500">
+              <strong>Bateo</strong>: JUGADOR | EQUIPO | POSICION | GP | AB | AVG | HR | RBI | OBP | SLG | OPS | WAR
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-rose-500">
+              <strong>Pitcheo</strong>: PITCHER | EQUIPO | POSICION | GP | GS | QS | ERA | W | L | IP | H | HR | BB | K | K9 | WHIP | WAR
+            </div>
+            <div class="bg-gray-50 rounded-lg p-4 border-l-4 border-amber-500">
+              <strong>Clasificacion</strong>: TEAM | LEAGUE | DIVISION | W | L | PCT | GB | HOME | AWAY | RS | RA | DIFF | L10 | STREAK
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal de análisis -->
+  <div id="analysis-modal" class="fixed inset-0 hidden items-center justify-center p-4 z-50 modal-bg">
+    <div class="bg-white w-full max-w-4xl modal-card shadow-2xl">
+      <div class="px-6 py-4 border-b flex items-center justify-between">
+        <h3 class="text-xl font-bold text-gray-900">Análisis detallado</h3>
+        <button class="soft-btn bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 font-semibold" onclick="closeAnalysis()">Cerrar</button>
+      </div>
+      <div id="analysis-content" class="p-6 space-y-4">
+        <!-- Se llena dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Estado global
+    let gameData = { calendario: [], bateo: [], pitcheo: [], clasificacion: [] };
+    let weights = { team: 25, pitch: 30, off: 20, bull: 10, home: 5, ctx: 5 }; // se normaliza
+
+    // Navegación
+    function showTab(name) {
+      document.querySelectorAll('.tab-content').forEach(s => s.classList.add('hidden'));
+      document.getElementById('content-' + name).classList.remove('hidden');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      if (name === 'inicio') updateStats();
+    }
+
+    // Upload Excel
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const status = document.getElementById('upload-status');
+      status.classList.remove('hidden');
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const wb = XLSX.read(new Uint8Array(ev.target.result), { type: 'array' });
+          ['Calendario','Bateo','Pitcheo','Clasificacion'].forEach(s => {
+            if (wb.SheetNames.includes(s)) {
+              gameData[s.toLowerCase()] = XLSX.utils.sheet_to_json(wb.Sheets[s]);
+            } else {
+              gameData[s.toLowerCase()] = [];
+            }
+          });
+          // Render
+          updateStats();
+          renderCalendario();
+          renderClasificacion();
+          renderBateo();
+          renderPitcheo();
+          renderPronosticos();
+          setTimeout(()=>status.classList.add('hidden'), 800);
+        } catch (err) {
+          status.innerHTML = '<div class="text-red-700 mt-4">Error: '+err.message+'</div>';
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // Utilidades de fecha/hora (Excel y cadenas)
+    function formatDate(val) {
+      if (!val) return 'TBD';
+      let d;
+      if (typeof val === 'number') {
+        // Excel serial date
+        d = new Date(Math.round((val - 25569) * 86400 * 1000));
+      } else {
+        // Try parse common formats
+        const parts = String(val).split(/[\/\-]/);
+        if (parts.length === 3 && parts[2].length === 4) {
+          // mm/dd/yyyy o dd-mm-yyyy: intentamos ambos
+          const a = parseInt(parts[0]), b = parseInt(parts[1]), c = parseInt(parts[2]);
+          // Heurística: si a > 12 => día primero
+          if (a > 12) d = new Date(c, b-1, a);
+          else d = new Date(c, a-1, b);
+        } else {
+          d = new Date(val);
+        }
+      }
+      if (isNaN(d)) return String(val);
+      const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      return `${String(d.getDate()).padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    function formatTime(val) {
+      if (!val) return '';
+      if (typeof val === 'number') {
+        // Excel time fraction of day
+        const totalMin = Math.round(val * 24 * 60);
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+      }
+      const s = String(val).trim().toLowerCase();
+      // "HH:MM" or "H:MM am/pm"
+      if (s.includes('am') || s.includes('pm')) {
+        let [hh, mm] = s.replace(/am|pm/g,'').trim().split(':');
+        let h = parseInt(hh || '0'); const pm = s.includes('pm');
+        if (pm && h !== 12) h += 12; if (!pm && h === 12) h = 0;
+        return `${String(h).padStart(2,'0')}:${String(mm || '00').padStart(2,'0')}`;
+      }
+      if (s.includes(':')) {
+        const [hh, mm] = s.split(':');
+        return `${String(parseInt(hh)||0).padStart(2,'0')}:${String(parseInt(mm)||0).padStart(2,'0')}`;
+      }
+      return s;
+    }
+
+    // Agrupar por fecha formateada
+    function groupByDate(games) {
+      const map = {};
+      games.forEach(g => {
+        const key = formatDate(g.FECHA);
+        if (!map[key]) map[key] = [];
+        map[key].push(g);
+      });
+      return map;
+    }
+
+    // Cálculo de pesos
+    function applyWeights() {
+      const t = parseInt(document.getElementById('w-team').value||0);
+      const p = parseInt(document.getElementById('w-pitch').value||0);
+      const o = parseInt(document.getElementById('w-off').value||0);
+      const b = parseInt(document.getElementById('w-bull').value||0);
+      const h = parseInt(document.getElementById('w-home').value||0);
+      const c = parseInt(document.getElementById('w-ctx').value||0);
+      const sum = t+p+o+b+h+c;
+      document.getElementById('weights-total').textContent = `Suma: ${sum}% (se normaliza a 100%)`;
+      // Normalizar a 100
+      if (sum === 0) return;
+      weights = {
+        team: (t/sum)*100,
+        pitch: (p/sum)*100,
+        off: (o/sum)*100,
+        bull: (b/sum)*100,
+        home: (h/sum)*100,
+        ctx: (c/sum)*100
+      };
+      renderPronosticos();
+    }
+
+    // Scores: normalizar a 0-100
+    function clamp(x, min, max){ return Math.max(min, Math.min(max, x)); }
+
+    function getTeamRow(teamName) {
+      return gameData.clasificacion.find(t => t.TEAM === teamName) || {};
+    }
+    function getPitcherRow(name) {
+      return gameData.pitcheo.find(p => p.PITCHER === name) || {};
+    }
+    function teamStrengthScore(team) {
+      const pct = parseFloat(team.PCT) || 0.5; // 0-1
+      const pctScore = pct*100;
+      const diff = parseInt(team.DIFF) || 0; // cap
+      const diffScore = clamp((diff+100)/2, 0, 100);
+      const l10 = team.L10 || '5-5';
+      const wins10 = parseInt(l10.split('-')[0]) || 5;
+      const l10Score = clamp(50 + (wins10-5)*3, 35, 65);
+      const streak = team.STREAK || '';
+      let streakAdj = 50;
+      if (streak.startsWith('W')) streakAdj = clamp(50 + (parseInt(streak.slice(1))||0)*3, 50, 70);
+      if (streak.startsWith('L')) streakAdj = clamp(50 - (parseInt(streak.slice(1))||0)*3, 30, 50);
+      // ponderación simple interna
+      return Math.round(
+        pctScore*0.6 + diffScore*0.2 + l10Score*0.1 + streakAdj*0.1
+      );
+    }
+    function pitcherScore(p) {
+      const ERA = parseFloat(p.ERA); const WHIP = parseFloat(p.WHIP);
+      const W = parseInt(p.W)||0; const L = parseInt(p.L)||0;
+      const wl = (W+L)>0 ? (W/(W+L)) : 0.5;
+      const eraScore = isFinite(ERA) ? clamp(100 - (ERA-2.00)*20, 0, 100) : 50; // 2.00 -> ~100 ; 6.00 -> ~20
+      const whipScore = isFinite(WHIP) ? clamp(100 - (WHIP-1.00)*80, 0, 100) : 50; // 1.00 -> 100 ; 1.50 -> 60
+      const wlScore = clamp(wl*100, 0, 100);
+      const qsRate = (() => {
+        const QS = parseInt(p.QS)||0; const GS = parseInt(p.GS)||0;
+        return GS>0 ? (QS/GS)*100 : 50;
+      })();
+      return Math.round(eraScore*0.45 + whipScore*0.35 + wlScore*0.10 + qsRate*0.10);
+    }
+    function offenseScore(teamName) {
+      // Si hay RS/L para equipo: usar RS por juego
+      const t = getTeamRow(teamName);
+      const W = parseInt(t.W)||0, L = parseInt(t.L)||0, RS = parseInt(t.RS)||0;
+      const g = (W+L) || 0;
+      if (g>0) {
+        const rpg = RS / g; // ~3-6
+        return clamp( ( (rpg-3) / 3 )*100 , 0, 100); // 3->0 ; 6->100
+      }
+      // fallback neutro
+      return 50;
+    }
+    function bullpenScore(teamName) {
+      // Si no hay bullpen dedicado, neutro
+      return 50;
+    }
+    function contextScoreHome(isHome) {
+      return isHome ? 60 : 40; // convierte a 0-100
+    }
+    function parkWeatherScore(park, weather) {
+      // Neutro (sin datos de parque/clima)
+      return 50;
+    }
+
+    function normalizeWeights(w) {
+      const sum = w.team + w.pitch + w.off + w.bull + w.home + w.ctx;
+      if (sum === 0) return w;
+      return {
+        team: w.team/sum, pitch: w.pitch/sum, off: w.off/sum,
+        bull: w.bull/sum, home: w.home/sum, ctx: w.ctx/sum
+      };
+    }
+
+    function gamePrediction(game) {
+      const teamH = getTeamRow(game.LOCAL);
+      const teamA = getTeamRow(game.VISITANTE);
+      const pH = getPitcherRow(game.PITCHER_LOCAL);
+      const pA = getPitcherRow(game.PITCHER_VISITANTE);
+
+      const sTeamH = teamStrengthScore(teamH);
+      const sTeamA = teamStrengthScore(teamA);
+      const sPitchH = pitcherScore(pH);
+      const sPitchA = pitcherScore(pA);
+      const sOffH = offenseScore(game.LOCAL);
+      const sOffA = offenseScore(game.VISITANTE);
+      const sBullH = bullpenScore(game.LOCAL);
+      const sBullA = bullpenScore(game.VISITANTE);
+      const sHomeH = contextScoreHome(true);
+      const sHomeA = contextScoreHome(false);
+      const sCtxH = parkWeatherScore(game.ESTADIO, game.CLIMA);
+      const sCtxA = sCtxH; // mismo parque/clima
+
+      const w = normalizeWeights(weights);
+
+      // ensamble ponderado
+      const totalH = sTeamH*w.team + sPitchH*w.pitch + sOffH*w.off + sBullH*w.bull + sHomeH*w.home + sCtxH*w.ctx;
+      const totalA = sTeamA*w.team + sPitchA*w.pitch + sOffA*w.off + sBullA*w.bull + sHomeA*w.home + sCtxA*w.ctx;
+
+      // Diferencia -> prob (rango razonable 30%-70%)
+      const diff = totalH - totalA; // -100 a 100 aprox
+      let probHome = 50 + (diff/2.5); // escala moderada
+      probHome = clamp(Math.round(probHome), 30, 70);
+      return {
+        probHome,
+        probAway: 100 - probHome,
+        totals: { totalH: Math.round(totalH), totalA: Math.round(totalA) },
+        blocks: {
+          team: { H: sTeamH, A: sTeamA },
+          pitch: { H: sPitchH, A: sPitchA },
+          off: { H: sOffH, A: sOffA },
+          bull: { H: sBullH, A: sBullA },
+          home: { H: sHomeH, A: sHomeA },
+          ctx:  { H: sCtxH,  A: sCtxA  },
+          w: { ...weights }
+        },
+        pitchers: {
+          H: { name: game.PITCHER_LOCAL || 'TBD', W: pH.W||0, L: pH.L||0, ERA: pH.ERA||'N/A', WHIP: pH.WHIP||'N/A' },
+          A: { name: game.PITCHER_VISITANTE || 'TBD', W: pA.W||0, L: pA.L||0, ERA: pA.ERA||'N/A', WHIP: pA.WHIP||'N/A' }
+        }
+      };
+    }
+
+    // Render Pronósticos
+    function renderPronosticos() {
+      const cont = document.getElementById('pronosticos-container');
+      if (gameData.calendario.length === 0) {
+        cont.innerHTML = `<div class="text-center py-16 text-gray-600">Carga datos para ver pronósticos.</div>`;
+        return;
+      }
+      const groups = groupByDate(gameData.calendario);
+      const dates = Object.keys(groups);
+      // Ordenar por fecha real si es posible
+      dates.sort((a,b)=>{
+        const pa = new Date(a.split(' ').reverse().join('-')).getTime();
+        const pb = new Date(b.split(' ').reverse().join('-')).getTime();
+        return pa - pb;
+      });
+
+      // Construir tabs de días
+      const tabsWrap = document.getElementById('pronosticos-tabs');
+      const tabsInner = document.getElementById('pronosticos-tabs-inner');
+      tabsInner.innerHTML = '';
+      dates.forEach((d, idx)=>{
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn px-3 py-1.5 text-sm font-medium';
+        btn.textContent = d;
+        btn.onclick = ()=> filterPronosticosByDate(d);
+        if (idx===0) btn.classList.add('active');
+        tabsInner.appendChild(btn);
+      });
+      tabsWrap.classList.remove('hidden');
+
+      let html = '';
+      dates.forEach(dateKey => {
+        const games = groups[dateKey];
+        html += `
+          <div data-day="${dateKey}">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="h-6 w-1.5 bg-blue-600 rounded"></div>
+              <h3 class="text-lg font-bold text-gray-900">${dateKey}</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        `;
+        games.forEach((g, idx) => {
+          const pred = gamePrediction(g);
+          html += `
+            <div class="card p-5 shadow-md">
+              <div class="flex items-center justify-between mb-2">
+                <div class="text-sm text-gray-500">${formatDate(g.FECHA)} · ${formatTime(g.HORA)}</div>
+                <span class="pill bg-gray-100 text-gray-700">${g.ESTADIO || 'Estadio'}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="text-xs text-gray-500 mb-1">Visitante</div>
+                  <div class="text-base font-semibold text-gray-900">${g.VISITANTE || 'TBD'}</div>
+                </div>
+                <div class="px-3 text-center">
+                  <span class="pill bg-blue-50 text-blue-700 font-bold">VS</span>
+                </div>
+                <div class="flex-1 text-right">
+                  <div class="text-xs text-gray-500 mb-1">Local</div>
+                  <div class="text-base font-semibold text-gray-900">${g.LOCAL || 'TBD'}</div>
+                </div>
+              </div>
+
+              <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                  <div class="text-xs text-gray-500">Prob. ${g.VISITANTE}</div>
+                  <div class="text-xl font-extrabold text-blue-700">${pred.probAway}%</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3 text-center">
+                  <div class="text-xs text-blue-700">Prob. ${g.LOCAL}</div>
+                  <div class="text-xl font-extrabold text-blue-800">${pred.probHome}%</div>
+                </div>
+              </div>
+
+              <div class="mt-4 bg-gray-50 rounded-lg p-3">
+                <div class="text-sm font-semibold text-gray-900 mb-2">Duelo de pitcheo</div>
+                <div class="flex items-start justify-between gap-3">
+                  <div class="text-xs text-gray-700">
+                    <div class="font-semibold">${pred.pitchers.A.name}</div>
+                    <div>W-L: ${pred.pitchers.A.W}-${pred.pitchers.A.L}</div>
+                    <div>ERA: ${pred.pitchers.A.ERA}</div>
+                    <div>WHIP: ${pred.pitchers.A.WHIP}</div>
+                  </div>
+                  <div class="text-xs text-right text-gray-700">
+                    <div class="font-semibold">${pred.pitchers.H.name}</div>
+                    <div>W-L: ${pred.pitchers.H.W}-${pred.pitchers.H.L}</div>
+                    <div>ERA: ${pred.pitchers.H.ERA}</div>
+                    <div>WHIP: ${pred.pitchers.H.WHIP}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex items-center gap-3">
+                <button class="soft-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold"
+                  onclick='openAnalysis(${JSON.stringify(escapeJSON(g))})'>
+                  Análisis detallado
+                </button>
+                <span class="text-xs text-gray-500">${g.CLIMA ? 'Clima: '+g.CLIMA : ''}</span>
+              </div>
+            </div>
+          `;
+        });
+        html += `</div></div>`;
+      });
+      cont.innerHTML = html;
+      // Mostrar sólo el primer día por defecto
+      if (dates.length) filterPronosticosByDate(dates[0]);
+    }
+
+    // Util para pasar objeto en onclick sin romper HTML
+    function escapeJSON(obj) {
+      return obj; // se serializa luego dentro de openAnalysis
+    }
+
+    function openAnalysis(gameRaw) {
+      // gameRaw viene como string JSON escapado al construir la plantilla, lo reinterpreto
+      let game = gameRaw;
+      if (typeof game === 'string') {
+        try { game = JSON.parse(game); } catch { /* ignore */ }
+      }
+      const pred = gamePrediction(game);
+      const content = document.getElementById('analysis-content');
+      const w = normalizeWeights(weights);
+      content.innerHTML = `
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm text-gray-500 mb-1">${formatDate(game.FECHA)} · ${formatTime(game.HORA)}</div>
+            <div class="text-lg font-bold text-gray-900">${game.VISITANTE} @ ${game.LOCAL}</div>
+            <div class="text-xs text-gray-600 mt-1">Estadio: ${game.ESTADIO || 'TBD'} ${game.CLIMA ? '· Clima: '+game.CLIMA : ''}</div>
+            <div class="mt-3 grid grid-cols-2 gap-3">
+              <div class="bg-white border rounded-lg p-3 text-center">
+                <div class="text-xs text-gray-500">Visitante</div>
+                <div class="text-2xl font-extrabold text-blue-700">${pred.probAway}%</div>
+              </div>
+              <div class="bg-blue-50 border border-blue-100 rounded-lg p-3 text-center">
+                <div class="text-xs text-blue-700">Local</div>
+                <div class="text-2xl font-extrabold text-blue-800">${pred.probHome}%</div>
+              </div>
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-lg p-4">
+            <div class="text-sm font-semibold text-gray-900 mb-2">Duelo de pitcheo</div>
+            <div class="grid grid-cols-2 gap-3 text-xs text-gray-800">
+              <div class="bg-white rounded p-3 border">
+                <div class="font-semibold">${pred.pitchers.A.name}</div>
+                <div>W-L: ${pred.pitchers.A.W}-${pred.pitchers.A.L}</div>
+                <div>ERA: ${pred.pitchers.A.ERA}</div>
+                <div>WHIP: ${pred.pitchers.A.WHIP}</div>
+              </div>
+              <div class="bg-white rounded p-3 border text-right">
+                <div class="font-semibold">${pred.pitchers.H.name}</div>
+                <div>W-L: ${pred.pitchers.H.W}-${pred.pitchers.H.L}</div>
+                <div>ERA: ${pred.pitchers.H.ERA}</div>
+                <div>WHIP: ${pred.pitchers.H.WHIP}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white border rounded-lg p-4">
+          <div class="text-sm font-semibold text-gray-900 mb-2">Aporte por bloques (normalizado)</div>
+          <div class="grid md:grid-cols-3 gap-3 text-sm">
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Fuerza equipos (${Math.round(w.team*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.team.A} · ${game.LOCAL}: ${pred.blocks.team.H}</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Abridores (${Math.round(w.pitch*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.pitch.A} · ${game.LOCAL}: ${pred.blocks.pitch.H}</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Ofensiva (${Math.round(w.off*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.off.A} · ${game.LOCAL}: ${pred.blocks.off.H}</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Bullpen (${Math.round(w.bull*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.bull.A} · ${game.LOCAL}: ${pred.blocks.bull.H}</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Localía (${Math.round(w.home*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.home.A} · ${game.LOCAL}: ${pred.blocks.home.H}</div>
+            </div>
+            <div class="bg-gray-50 rounded p-3">
+              <div class="font-semibold">Parque/Clima (${Math.round(w.ctx*100)}%)</div>
+              <div>${game.VISITANTE}: ${pred.blocks.ctx.A} · ${game.LOCAL}: ${pred.blocks.ctx.H}</div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.getElementById('analysis-modal').classList.remove('hidden');
+      document.getElementById('analysis-modal').classList.add('flex');
+    }
+    function closeAnalysis() {
+      document.getElementById('analysis-modal').classList.add('hidden');
+      document.getElementById('analysis-modal').classList.remove('flex');
+      document.getElementById('analysis-content').innerHTML = '';
+    }
+
+    function filterPronosticosByDate(dayKey){
+      // activar tab
+      document.querySelectorAll('#pronosticos-tabs-inner .tab-btn').forEach(b=>{
+        b.classList.remove('active');
+        if (b.textContent === dayKey) b.classList.add('active');
+      });
+      // mostrar secciones del día
+      document.querySelectorAll('#pronosticos-container [data-day]').forEach(sec=>{
+        sec.style.display = (sec.getAttribute('data-day') === dayKey) ? '' : 'none';
+      });
+    }
+
+    function resetWeights(){
+      // valores por defecto
+      document.getElementById('w-team').value = 25;
+      document.getElementById('w-pitch').value = 30;
+      document.getElementById('w-off').value = 20;
+      document.getElementById('w-bull').value = 10;
+      document.getElementById('w-home').value = 5;
+      document.getElementById('w-ctx').value = 5;
+      applyWeights();
+      // toast
+      const t = document.createElement('div');
+      t.className = 'toast fixed top-5 right-5 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg';
+      t.textContent = 'Pesos del modelo restablecidos';
+      document.body.appendChild(t);
+      setTimeout(()=>{ if(document.body.contains(t)) document.body.removeChild(t); }, 2000);
+    }
+
+    // Render Calendario (simple)
+    function renderCalendario() {
+      const cont = document.getElementById('calendario-container');
+      if (gameData.calendario.length === 0) {
+        cont.innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+        return;
+      }
+      const groups = groupByDate(gameData.calendario);
+      const dates = Object.keys(groups);
+      let html = '';
+      dates.forEach(dk=>{
+        html += `<div><h4 class=\"text-lg font-bold text-gray-900 mb-2\">${dk}</h4><div class=\"grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4\">`;
+        groups[dk].forEach(g=>{
+          html += `
+            <div class=\"card p-4 shadow-md\">
+              <div class=\"flex items-center justify-between\"> 
+                <div class=\"text-sm text-gray-500\">${formatDate(g.FECHA)} · ${formatTime(g.HORA)}</div>
+                <div class=\"pill bg-gray-100 text-gray-700\">${g.ESTADIO || 'Estadio'}</div>
+              </div>
+              <div class=\"mt-2 font-semibold text-gray-900\">${g.VISITANTE} @ ${g.LOCAL}</div>
+              <div class=\"text-xs text-gray-600 mt-1\">P.Vis: ${g.PITCHER_VISITANTE || 'TBD'} · P.Loc: ${g.PITCHER_LOCAL || 'TBD'}</div>
+            </div>
+          `;
+        });
+        html += `</div></div>`;
+      });
+      cont.innerHTML = html;
+      // Mostrar sólo el primer día por defecto
+      if (dates.length) filterPronosticosByDate(dates[0]);
+    }
+
+    // Tablas simples
+    function renderClasificacion() {
+      const cont = document.getElementById('clasificacion-container');
+      if (gameData.clasificacion.length === 0) { cont.innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`; return; }
+      const byLeague = {};
+      gameData.clasificacion.forEach(t=>{
+        byLeague[t.LEAGUE] = byLeague[t.LEAGUE] || {};
+        byLeague[t.LEAGUE][t.DIVISION] = byLeague[t.LEAGUE][t.DIVISION] || [];
+        byLeague[t.LEAGUE][t.DIVISION].push(t);
+      });
+      let html = '';
+      Object.keys(byLeague).forEach(league=>{
+        html += `<div class="card p-4"><h4 class="font-bold text-gray-900 mb-3">${league}</h4>`;
+        Object.keys(byLeague[league]).forEach(div=>{
+          const teams = byLeague[league][div].slice().sort((a,b)=>(b.PCT||0)-(a.PCT||0));
+          html += `
+            <div class="overflow-auto mb-4 border rounded-lg">
+              <div class="px-3 py-2 font-semibold text-gray-800 bg-gray-50">${div}</div>
+              <table class="min-w-full text-sm">
+                <thead class="bg-gray-100 text-gray-700">
+                  <tr><th class="text-left px-3 py-2">Equipo</th><th class="text-left px-3 py-2">W</th><th class="text-left px-3 py-2">L</th><th class="text-left px-3 py-2">PCT</th><th class="text-left px-3 py-2">GB</th><th class="text-left px-3 py-2">L10</th><th class="text-left px-3 py-2">Racha</th></tr>
+                </thead>
+                <tbody>
+                  ${teams.map(t=>`
+                    <tr class="border-t">
+                      <td class="px-3 py-2 font-semibold text-gray-900">${t.TEAM}</td>
+                      <td class="px-3 py-2">${t.W||0}</td>
+                      <td class="px-3 py-2">${t.L||0}</td>
+                      <td class="px-3 py-2">${(t.PCT||0).toFixed ? t.PCT.toFixed(3) : t.PCT}</td>
+                      <td class="px-3 py-2">${t.GB||'-'}</td>
+                      <td class="px-3 py-2">${t.L10||'-'}</td>
+                      <td class="px-3 py-2">${t.STREAK||'-'}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        });
+        html += `</div>`;
+      });
+      cont.innerHTML = html;
+    }
+
+    function renderBateo() {
+      const cont = document.getElementById('bateo-container');
+      if (gameData.bateo.length === 0) { cont.innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`; return; }
+      const data = gameData.bateo.slice(0,50);
+      cont.innerHTML = `
+        <div class="overflow-auto card">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr><th class="text-left px-3 py-2">Jugador</th><th class="text-left px-3 py-2">Equipo</th><th class="text-left px-3 py-2">AVG</th><th class="text-left px-3 py-2">HR</th><th class="text-left px-3 py-2">RBI</th><th class="text-left px-3 py-2">OPS</th></tr>
+            </thead>
+            <tbody>
+              ${data.map(p=>`
+                <tr class="border-t">
+                  <td class="px-3 py-2 font-semibold text-gray-900">${p.JUGADOR}</td>
+                  <td class="px-3 py-2">${p.EQUIPO}</td>
+                  <td class="px-3 py-2">${p.AVG}</td>
+                  <td class="px-3 py-2">${p.HR}</td>
+                  <td class="px-3 py-2">${p.RBI}</td>
+                  <td class="px-3 py-2">${p.OPS}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderPitcheo() {
+      const cont = document.getElementById('pitcheo-container');
+      if (gameData.pitcheo.length === 0) { cont.innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`; return; }
+      const data = gameData.pitcheo.slice(0,50);
+      cont.innerHTML = `
+        <div class="overflow-auto card">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700">
+              <tr><th class="text-left px-3 py-2">Pitcher</th><th class="text-left px-3 py-2">Equipo</th><th class="text-left px-3 py-2">ERA</th><th class="text-left px-3 py-2">W-L</th><th class="text-left px-3 py-2">IP</th><th class="text-left px-3 py-2">WHIP</th></tr>
+            </thead>
+            <tbody>
+              ${data.map(p=>`
+                <tr class="border-t">
+                  <td class="px-3 py-2 font-semibold text-gray-900">${p.PITCHER}</td>
+                  <td class="px-3 py-2">${p.EQUIPO}</td>
+                  <td class="px-3 py-2">${p.ERA}</td>
+                  <td class="px-3 py-2">${p.W||0}-${p.L||0}</td>
+                  <td class="px-3 py-2">${p.IP}</td>
+                  <td class="px-3 py-2">${p.WHIP}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    // Stats del dashboard
+    function updateStats() {
+      document.getElementById('stats-games').textContent = gameData.calendario.length;
+      document.getElementById('stats-batters').textContent = gameData.bateo.length;
+      document.getElementById('stats-pitchers').textContent = gameData.pitcheo.length;
+      document.getElementById('stats-teams').textContent = gameData.clasificacion.length;
+    }
+
+    // Limpiar (arreglado: borra estado, resetea UI y confirma)
+    function clearAllData() {
+      gameData = { calendario: [], bateo: [], pitcheo: [], clasificacion: [] };
+      const file = document.getElementById('excel-file');
+      if (file) file.value = '';
+      // Reset UI
+      updateStats();
+      document.getElementById('calendario-container').innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+      document.getElementById('clasificacion-container').innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+      document.getElementById('bateo-container').innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+      document.getElementById('pitcheo-container').innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+      document.getElementById('pronosticos-container').innerHTML = `<div class="text-center py-12 text-gray-600">Sin datos.</div>`;
+      closeAnalysis();
+
+      // Toast de confirmación
+      const t = document.createElement('div');
+      t.className = 'toast fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg';
+      t.textContent = 'Datos eliminados correctamente';
+      document.body.appendChild(t);
+      setTimeout(()=>{ if (document.body.contains(t)) document.body.removeChild(t); }, 2200);
+    }
+
+    // Inicio
+    document.addEventListener('DOMContentLoaded', () => {
+      showTab('inicio');
+      updateStats();
+      // Mostrar suma inicial de sliders
+      applyWeights();
+    });
+
+    // Cerrar modal al fondo
+    document.getElementById('analysis-modal').addEventListener('click', (e)=>{
+      if (e.target.id === 'analysis-modal') closeAnalysis();
+    });
+  </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96fa42db63dc8aea',t:'MTc1NTI3NzM2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
