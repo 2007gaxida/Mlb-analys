@@ -1,2 +1,0 @@
-# Mlb-analys
-Pronóstico
